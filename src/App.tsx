@@ -18,40 +18,14 @@ function App() {
     });
   }, []);
 
-  function createTodo() {
-    const todoContent = window.prompt("Todo content");
-    if (todoContent) {
-        client.models.Todo.create({ content: todoContent })
-            .then(() => {
-                refreshTodoList();
-            })
-            .catch(error => {
-                console.error("Error creating Todo:", error);
-            });
+
+    function createTodo() {
+      client.models.Todo.create({ content: window.prompt("Todo content") });
     }
-  }
 
-  function deleteTodo(id: string) {
-    client.models.Todo.delete({ id })
-        .then(() => {
-            refreshTodoList();
-        })
-        .catch(error => {
-            console.error("Error deleting Todo:", error);
-        });
-  }
-
-  function refreshTodoList() {
-      console.log("Todo list refreshed");
-  }
-
-    // function createTodo() {
-    //   client.models.Todo.create({ content: window.prompt("Todo content") });
-    // }
-
-    // function deleteTodo(id: string) {
-    //   client.models.Todo.delete({ id })
-    // }
+    function deleteTodo(id: string) {
+      client.models.Todo.delete({ id })
+    }
 
   return (
     <Authenticator>
