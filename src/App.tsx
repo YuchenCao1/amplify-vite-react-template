@@ -9,19 +9,65 @@ const client = generateClient<Schema>();
 function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
 
+  // useEffect(() => {
+  //   client.models.Todo.observeQuery().subscribe({
+  //     next: (data) => {
+  //       console.log(data)
+  //       setTodos([...data.items])
+  //     },
+  //   });
+  // }, []);
+
+  const fetchTodos = async () => {
+    try {
+      const response = await fetch('API_ENDPOINT_HERE');
+      const data = await response.json();
+      if (response.ok) {
+        setTodos(data.items);
+      } else {
+        throw new Error('Failed to fetch todos');
+      }
+    } catch (error) {
+      console.error('Error fetching todos:', error);
+    }
+  };
+
+
   useEffect(() => {
-    client.models.Todo.observeQuery().subscribe({
-      next: (data) => setTodos([...data.items]),
-    });
+    fetchTodos();
   }, []);
 
-  function createTodo() {
-    client.models.Todo.create({ content: window.prompt("Todo content") });
-  }
+  // function createTodo() {
+  //   client.models.Todo.create({ content: window.prompt("Todo content") });
+  // }
 
-  function deleteTodo(id: string) {
-    client.models.Todo.delete({ id })
-  }
+  // function deleteTodo(id: string) {
+  //   client.models.Todo.delete({ id })
+  // }
+  const createTodo = async () => {
+    const content = window.prompt("Todo content");
+    if (content) {
+      await fetch('API_ENDPOINT_HERE', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      });
+      fetchTodos();
+    }
+  };
+
+  const deleteTodo = async (id: string) => {
+    try {
+      await fetch(`API_ENDPOINT_HERE/${id}`, {
+        method: 'DELETE',
+      });
+      fetchTodos();
+    } catch (error) {
+      console.error('Error deleting todo:', error);
+    }
+  };
 
   return (
     <Authenticator>
