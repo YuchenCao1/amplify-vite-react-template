@@ -1,57 +1,64 @@
-import { Authenticator } from '@aws-amplify/ui-react'
-import '@aws-amplify/ui-react/styles.css'
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { Authenticator } from '@aws-amplify/ui-react';
+import '@aws-amplify/ui-react/styles.css';
+import { Amplify } from "aws-amplify";
+import outputs from "../amplify_outputs.json";
+import { generateClient } from 'aws-amplify/data';
 import type { Schema } from "../amplify/data/resource";
-import { generateClient } from "aws-amplify/data";
+import { useUser } from "./UserContext";
+
+Amplify.configure(outputs);
 
 const client = generateClient<Schema>();
 
 function App() {
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
+  const [todos, setTodos] = useState([]);
+  const { user, signOut } = useUser();
   
   useEffect(() => {
-    client.models.Todo.observeQuery().subscribe({
-      next: (data) => {
-        console.log(data)
-        setTodos([...data.items])
-      },
-    });
-  }, []);
+    fetchTodos();
+  }, [user]);
 
 
-    function createTodo() {
-      client.models.Todo.create({ content: window.prompt("Todo content") });
+  async function fetchTodos() {
+    const { data: originTodos, errors } = await client.models.Todo.list();
+    if (!errors) {
+      setTodos(originTodos);
     }
+  }
 
-    function deleteTodo(id: string) {
-      client.models.Todo.delete({ id })
+  function createTodo() {
+    const input = window.prompt("Todo content");
+    if (input) {
+      let todoCreation = client.models.Todo.create({content: input});
+      todoCreation.then(result => {
+        const nextTodos = [...todos, result.data];
+        setTodos(nextTodos);
+      });
     }
+  }
+
+  function deleteTodo(id: string, index: number) {
+    let updatedTodos = [...todos.slice(0, index), ...todos.slice(index + 1)];
+    client.models.Todo.delete({id});
+    setTodos(updatedTodos);
+  }
 
   return (
-    <Authenticator>
-      {({ signOut, user }) => (
-    <main>
-      <h1>{user?.signInDetails?.loginId}'s todos</h1>
-      <button onClick={createTodo}>+ new</button>
-      <ul>
-        {todos.map((todo) => (
-          <li 
-            onClick={() => deleteTodo(todo.id)}
-            key={todo.id}>{todo.content}
-          </li>
-        ))}
-      </ul>
-      <div>
-        🥳 App successfully hosted. Try creating a new todo.
-        <br />
-        <a href="https://docs.amplify.aws/react/start/quickstart/#make-frontend-updates">
-          Review next step of this tutorial.
-        </a>
-      </div>
-      <button onClick={signOut}>Sign out</button>
-    </main>
-      )}
-      </Authenticator>
+        <main>
+          <h1>{user ? `${user.signInDetails.loginId || user.attributes?.email}'s Todos` : "Guest's Todos"}</h1>
+          <button onClick={createTodo}>+ New</button>
+          <ul>
+            {todos.map((todo, index) => (
+              <li key={todo.id} onClick={() => deleteTodo(todo.id, index)}>
+                {todo.content}
+              </li>
+            ))}
+          </ul>
+          <div>🥳 App successfully hosted. Try creating a new todo.</div>
+          <button onClick={signOut}>Sign out</button>
+        </main>
+
   );
 }
 
